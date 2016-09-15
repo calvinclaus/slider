@@ -196,6 +196,8 @@ class Slider extends React.Component {
       }
     }
 
+    this.valueNeedChanging = valueNeedChanging;
+
     const oldValue = state.bounds[valueNeedChanging];
 
     if (this.props.changeOnlyViaDrag) {
@@ -420,7 +422,9 @@ class Slider extends React.Component {
 
   end(type) {
     this.removeEvents(type);
-    if (!this.changeHappened) { this.props.onBoundClick() }
+    if (!this.changeHappened) {
+      this.props.onBoundClick(this.valueNeedChanging);
+    }
     this.changeHappened = false;
     this.props.onAfterChange(this.getValue());
     this.setState({ handle: null });

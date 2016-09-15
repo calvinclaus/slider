@@ -129,6 +129,7 @@ class Slider extends React.Component {
     const value = this.trimAlignValue(this.startValue + diffValue);
     const oldValue = state.bounds[state.handle];
     if (value === oldValue) return;
+    this.changeHappened = true;
 
     const nextBounds = [...state.bounds];
     nextBounds[state.handle] = value;
@@ -137,7 +138,7 @@ class Slider extends React.Component {
       const originalValue = state.bounds[nextHandle];
       this.pushSurroundingHandles(nextBounds, nextHandle, originalValue);
     } else if (props.allowCross) {
-      nextBounds.sort((a, b) => a - b);
+      if (!props.noSort) nextBounds.sort((a, b) => a - b);
       nextHandle = nextBounds.indexOf(value);
     }
     this.onChange({
@@ -148,7 +149,6 @@ class Slider extends React.Component {
 
   onTouchStart(e) {
     if (isNotTouchEvent(e)) return;
-
     const position = getTouchPosition(this.props.vertical, e);
     this.onStart(position);
     this.addDocumentEvents('touch');
@@ -158,12 +158,13 @@ class Slider extends React.Component {
   onMouseDown(e) {
     if (e.button !== 0) { return; }
     const position = getMousePosition(this.props.vertical, e);
-    this.onStart(position);
-    this.addDocumentEvents('mouse');
-    pauseEvent(e);
+    if (this.onStart(position, e.target) || !this.props.changeOnlyViaDrag) {
+      this.addDocumentEvents('mouse');
+      pauseEvent(e);
+    }
   }
 
-  onStart(position) {
+  onStart(position, target) {
     const props = this.props;
     props.onBeforeChange(this.getValue());
 
@@ -188,24 +189,43 @@ class Slider extends React.Component {
       const isAtTheSamePoint = (bounds[closestBound + 1] === bounds[closestBound]);
       if (isAtTheSamePoint) {
         valueNeedChanging = state.recent;
-      }
+      } 
 
       if (isAtTheSamePoint && (value !== bounds[closestBound + 1])) {
         valueNeedChanging = value < bounds[closestBound + 1] ? closestBound : closestBound + 1;
       }
     }
 
-    this.setState({
-      handle: valueNeedChanging,
-      recent: valueNeedChanging,
-    });
-
     const oldValue = state.bounds[valueNeedChanging];
-    if (value === oldValue) return;
 
-    const nextBounds = [...state.bounds];
-    nextBounds[valueNeedChanging] = value;
-    this.onChange({ bounds: nextBounds });
+    if (this.props.changeOnlyViaDrag) {
+      //Was a bound pressed? Then allow changes and highlighting. 
+      //The target.className check is necessery because the bound can be larger than the value it represents
+      //If I didn't do this, I could hover the bound and click it, but then it wouldn't slide
+      if (value === oldValue || target.className.includes('rc-slider-handle')) {
+        //update UI to show interaction with this bound
+        this.setState({
+          handle: valueNeedChanging,
+          recent: valueNeedChanging,
+        });
+        return true; //i only want to listen to mouse events when a bound is pressed
+      }
+      this.props.onRangeClick(value);
+      return false; //no bound was pressed, we call the callback and return; no sliding does anything
+    } else {
+      this.setState({
+        handle: valueNeedChanging,
+        recent: valueNeedChanging,
+      });
+
+      if (value === oldValue) {
+        return true;
+      }
+      //this changes the closes value for the initial click
+      const nextBounds = [...state.bounds];
+      nextBounds[valueNeedChanging] = value;
+      this.onChange({ bounds: nextBounds });
+    }
   }
 
   getValue() {
@@ -239,9 +259,9 @@ class Slider extends React.Component {
   }
 
   /**
-   * Returns an array of possible slider points, taking into account both
-   * `marks` and `step`. The result is cached.
-   */
+    * Returns an array of possible slider points, taking into account both
+    * `marks` and `step`. The result is cached.
+      */
   getPoints() {
     const { marks, step, min, max } = this.props;
     const cache = this._getPointsCache;
@@ -378,13 +398,13 @@ class Slider extends React.Component {
       // just work for chrome iOS Safari and Android Browser
       this.onTouchMoveListener =
         addEventListener(document, 'touchmove', this.onTouchMove.bind(this));
-      this.onTouchUpListener =
-        addEventListener(document, 'touchend', this.end.bind(this, 'touch'));
+        this.onTouchUpListener =
+          addEventListener(document, 'touchend', this.end.bind(this, 'touch'));
     } else if (type === 'mouse') {
       this.onMouseMoveListener =
         addEventListener(document, 'mousemove', this.onMouseMove.bind(this));
-      this.onMouseUpListener =
-        addEventListener(document, 'mouseup', this.end.bind(this, 'mouse'));
+        this.onMouseUpListener =
+          addEventListener(document, 'mouseup', this.end.bind(this, 'mouse'));
     }
   }
 
@@ -400,30 +420,33 @@ class Slider extends React.Component {
 
   end(type) {
     this.removeEvents(type);
+    if (!this.changeHappened) { this.props.onBoundClick() }
+    this.changeHappened = false;
     this.props.onAfterChange(this.getValue());
     this.setState({ handle: null });
   }
 
   render() {
     const {
-        handle,
-        bounds,
+      handle,
+      bounds,
     } = this.state;
     const {
-        className,
-        prefixCls,
-        tooltipPrefixCls,
-        disabled,
-        vertical,
-        dots,
-        included,
-        range,
-        step,
-        marks,
-        max, min,
-        tipTransitionName,
-        tipFormatter,
-        children,
+      className,
+      prefixCls,
+      tooltipPrefixCls,
+      disabled,
+      hideTracks, 
+      vertical,
+      dots,
+      included,
+      range,
+      step,
+      marks,
+      max, min,
+      tipTransitionName,
+      tipFormatter,
+      children,
     } = this.props;
 
     const customHandle = this.props.handle;
@@ -487,7 +510,7 @@ class Slider extends React.Component {
         onTouchStart={disabled ? noop : this.onTouchStart.bind(this)}
         onMouseDown={disabled ? noop : this.onMouseDown.bind(this)}
       >
-        {tracks}
+        {!hideTracks ? tracks : null}
         <Steps prefixCls={prefixCls} vertical = {vertical} marks={marks} dots={dots} step={step}
           included={isIncluded} lowerBound={bounds[0]}
           upperBound={bounds[bounds.length - 1]} max={max} min={min}
@@ -523,9 +546,14 @@ Slider.propTypes = {
   disabled: React.PropTypes.bool,
   children: React.PropTypes.any,
   onBeforeChange: React.PropTypes.func,
+  onBoundClick: React.PropTypes.func,
   onChange: React.PropTypes.func,
+  hideTracks: React.PropTypes.bool,
+  noSort: React.PropTypes.bool,
   onAfterChange: React.PropTypes.func,
+  onRangeClick: React.PropTypes.func,
   handle: React.PropTypes.element,
+  changeOnlyViaDrag: React.PropTypes.bool,
   tipTransitionName: React.PropTypes.string,
   tipFormatter: React.PropTypes.func,
   dots: React.PropTypes.bool,
@@ -553,14 +581,19 @@ Slider.defaultProps = {
   onBeforeChange: noop,
   onChange: noop,
   onAfterChange: noop,
+  changeOnlyViaDrag: true, //allows changes only via drag, does not move a bound for range click
+  onRangeClick: noop, //cb when range instead of bound is clicked; works only with changeOnlyViaDrag
+  onBoundClick: noop, //cb when bound is clicked but was not moved
+  noSort: false, //prevents sorting of bounds array to allow knowing which value changed
+  hideTracks: false, //hides tracks between ranges
   tipFormatter: value => value,
-  included: true,
-  disabled: false,
-  dots: false,
-  range: false,
-  vertical: false,
-  allowCross: true,
-  pushable: false,
+    included: true,
+    disabled: false,
+    dots: false,
+    range: false,
+    vertical: false,
+    allowCross: true,
+    pushable: false,
 };
 
 export default Slider;

@@ -178,22 +178,15 @@ class Slider extends React.Component {
     let valueNeedChanging = 1;
     if (this.props.range) {
       let closestBound = 0;
-      for (let i = 1; i < bounds.length - 1; ++i) {
-        if (value > bounds[i]) { closestBound = i; }
-      }
-      if (Math.abs(bounds[closestBound + 1] - value) < Math.abs(bounds[closestBound] - value)) {
-        closestBound = closestBound + 1;
+      let currentMinDistance = null;
+      for (let i = 0; i < bounds.length; i++) {
+        let thisDistance = Math.abs(value - bounds[i])
+        if (currentMinDistance === null || currentMinDistance > thisDistance) {
+          currentMinDistance = thisDistance 
+          closestBound = i;
+        }
       }
       valueNeedChanging = closestBound;
-
-      const isAtTheSamePoint = (bounds[closestBound + 1] === bounds[closestBound]);
-      if (isAtTheSamePoint) {
-        valueNeedChanging = state.recent;
-      } 
-
-      if (isAtTheSamePoint && (value !== bounds[closestBound + 1])) {
-        valueNeedChanging = value < bounds[closestBound + 1] ? closestBound : closestBound + 1;
-      }
     }
 
     this.valueNeedChanging = valueNeedChanging;

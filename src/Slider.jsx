@@ -67,10 +67,17 @@ class Slider extends React.Component {
     if (!('value' in nextProps || 'min' in nextProps || 'max' in nextProps)) return;
 
     const { bounds } = this.state;
+    if (nextProps.range == -1) {
+      this.setState({bounds: []});
+    }
     if (nextProps.range) {
       const value = nextProps.value || bounds;
+      console.log(value);
       const nextBounds = value.map(v => this.trimAlignValue(v, nextProps));
-      if (nextBounds.every((v, i) => v === bounds[i])) return;
+      //THIS SECOND CHECK HAD TO BE ADDED BECAUSE ONLY THE LEFT FAILS WHEN nextBounds has an element removed at the end
+      if (nextBounds.every((v, i) => v === bounds[i]) && bounds.every((v, i) => v === nextBounds[i])) {
+        return;
+      }
 
       this.setState({ bounds: nextBounds });
       if (bounds.some(v => this.isValueOutOfBounds(v, nextProps))) {
@@ -416,7 +423,7 @@ class Slider extends React.Component {
   end(type) {
     this.removeEvents(type);
     if (!this.changeHappened) {
-      this.props.onBoundClick(this.valueNeedChanging);
+      this.props.onBoundClick(!this.props.range ? 0 : this.valueNeedChanging);
     }
     this.changeHappened = false;
     this.props.onAfterChange(this.getValue());

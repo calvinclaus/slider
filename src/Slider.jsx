@@ -141,8 +141,12 @@ class Slider extends React.Component {
       const originalValue = state.bounds[nextHandle];
       this.pushSurroundingHandles(nextBounds, nextHandle, originalValue);
     } else if (props.allowCross) {
-      if (!props.noSort) nextBounds.sort((a, b) => a - b);
-      nextHandle = nextBounds.indexOf(value);
+      if (!props.noSort) {
+        nextBounds.sort((a, b) => a - b);
+        nextHandle = nextBounds.indexOf(value);
+      } else {
+        nextHandle = state.handle;
+      }
     }
     this.onChange({
       handle: nextHandle,
@@ -190,6 +194,16 @@ class Slider extends React.Component {
         }
       }
       valueNeedChanging = closestBound;
+      if (!props.noSort) {
+        const isAtTheSamePoint = (bounds[closestBound + 1] === bounds[closestBound]);
+        if (isAtTheSamePoint) {
+          valueNeedChanging = state.recent;
+        } 
+
+        if (isAtTheSamePoint && (value !== bounds[closestBound + 1])) {
+          valueNeedChanging = value < bounds[closestBound + 1] ? closestBound : closestBound + 1;
+        }
+      }
     }
 
     this.valueNeedChanging = valueNeedChanging;

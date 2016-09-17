@@ -67,9 +67,6 @@ class Slider extends React.Component {
     if (!('value' in nextProps || 'min' in nextProps || 'max' in nextProps)) return;
 
     const { bounds } = this.state;
-    if (nextProps.range == -1) {
-      this.setState({bounds: []});
-    }
     if (nextProps.range) {
       const value = nextProps.value || bounds;
       console.log(value);

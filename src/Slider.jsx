@@ -69,7 +69,6 @@ class Slider extends React.Component {
     const { bounds } = this.state;
     if (nextProps.range) {
       const value = nextProps.value || bounds;
-      console.log(value);
       const nextBounds = value.map(v => this.trimAlignValue(v, nextProps));
       //THIS SECOND CHECK HAD TO BE ADDED BECAUSE ONLY THE LEFT FAILS WHEN nextBounds has an element removed at the end
       if (nextBounds.every((v, i) => v === bounds[i]) && bounds.every((v, i) => v === nextBounds[i])) {

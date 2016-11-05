@@ -194,14 +194,19 @@ class Slider extends React.Component {
         }
       }
       valueNeedChanging = closestBound;
+      const isAtTheSamePoint = (bounds[closestBound + 1] === bounds[closestBound]);
       if (!props.noSort) {
-        const isAtTheSamePoint = (bounds[closestBound + 1] === bounds[closestBound]);
         if (isAtTheSamePoint) {
           valueNeedChanging = state.recent;
         } 
 
         if (isAtTheSamePoint && (value !== bounds[closestBound + 1])) {
           valueNeedChanging = value < bounds[closestBound + 1] ? closestBound : closestBound + 1;
+        }
+      } else {
+        //this is only convenient for easy-flip -> always change number 2 if two are at same point
+        if (isAtTheSamePoint && this.props.ifAtSamePointMoveCentralBound && bounds.length === 3) {
+          valueNeedChanging = 1;
         }
       }
     }
@@ -567,6 +572,7 @@ Slider.propTypes = {
   onAfterChange: React.PropTypes.func,
   onRangeClick: React.PropTypes.func,
   handle: React.PropTypes.element,
+  ifAtSamePointMoveCentralBound: React.PropTypes.bool, 
   changeOnlyViaDrag: React.PropTypes.bool,
   tipTransitionName: React.PropTypes.string,
   tipFormatter: React.PropTypes.func,
@@ -595,6 +601,7 @@ Slider.defaultProps = {
   onBeforeChange: noop,
   onChange: noop,
   onAfterChange: noop,
+  ifAtSamePointMoveCentralBound: false, //if two bounds are at the same position move the central one (this only works if bounds.length === 3 and noSort = true)
   changeOnlyViaDrag: true, //allows changes only via drag, does not move a bound for range click
   onRangeClick: noop, //cb when range instead of bound is clicked; works only with changeOnlyViaDrag
   onBoundClick: noop, //cb when bound is clicked but was not moved

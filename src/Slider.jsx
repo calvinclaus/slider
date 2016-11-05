@@ -176,7 +176,6 @@ class Slider extends React.Component {
     props.onBeforeChange(this.getValue());
 
     const value = this.calcValueByPos(position);
-    this.startValue = value;
     this.startPosition = position;
 
     const state = this.state;
@@ -214,6 +213,11 @@ class Slider extends React.Component {
     this.valueNeedChanging = valueNeedChanging;
 
     const oldValue = state.bounds[valueNeedChanging];
+    if (this.props.zapHandleToCenterOfDrag) {
+      this.startValue = value; //value being where the click was on the slider
+    } else {
+      this.startValue = oldValue; //old balue being where the handle was before the drag
+    }
 
     if (this.props.changeOnlyViaDrag) {
       //Was a bound pressed? Then allow changes and highlighting. 
@@ -602,6 +606,7 @@ Slider.defaultProps = {
   onChange: noop,
   onAfterChange: noop,
   ifAtSamePointMoveCentralBound: false, //if two bounds are at the same position move the central one (this only works if bounds.length === 3 and noSort = true)
+  zapHandleToCenterOfDrag: true, //if set to false the handle will not zap to the mouse (useful for large handles) (default rc-slider behaviour is true)
   changeOnlyViaDrag: true, //allows changes only via drag, does not move a bound for range click
   onRangeClick: noop, //cb when range instead of bound is clicked; works only with changeOnlyViaDrag
   onBoundClick: noop, //cb when bound is clicked but was not moved
